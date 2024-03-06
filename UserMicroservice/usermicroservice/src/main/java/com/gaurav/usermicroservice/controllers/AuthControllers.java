@@ -3,10 +3,14 @@ package com.gaurav.usermicroservice.controllers;
 
 import com.gaurav.usermicroservice.dto.requests.LoginReq;
 import com.gaurav.usermicroservice.dto.requests.SignUpReq;
+import com.gaurav.usermicroservice.dto.responses.LoginResp;
 import com.gaurav.usermicroservice.models.Role;
 import com.gaurav.usermicroservice.models.User;
 import com.gaurav.usermicroservice.repositories.RoleRepository;
 import com.gaurav.usermicroservice.repositories.UserRepository;
+import com.gaurav.usermicroservice.util.JwtHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +18,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +37,8 @@ public class AuthControllers {
     private AuthenticationManager authenticationManager;
 
     @Autowired
+    UserDetailsService userDetailsService;
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -39,18 +47,29 @@ public class AuthControllers {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtHelper helper;
+
+    private Logger logger = LoggerFactory.getLogger(AuthControllers.class);
+
     @GetMapping("/welcome")
     public ResponseEntity<String> welcome(){
         return new ResponseEntity<>("Welcome to spring security project", HttpStatus.OK);
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<String> authenticateUser(@RequestBody LoginReq loginReq){
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                loginReq.getUsernameOrEmail(), loginReq.getPassword()));
+    public ResponseEntity<LoginResp> authenticateUser(@RequestBody LoginReq loginReq){
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return new ResponseEntity<>("User signed-in successfully!.", HttpStatus.OK);
+       try{ Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                loginReq.getUsernameOrEmail(), loginReq.getPassword()));
+           SecurityContextHolder.getContext().setAuthentication(authentication);
+       }
+       catch (Exception e){
+           return new ResponseEntity<>(new LoginResp("Invalid Username or password"),HttpStatus.UNAUTHORIZED);
+       }
+        UserDetails userDetails = userDetailsService.loadUserByUsername(loginReq.getUsernameOrEmail());
+        final String token = this.helper.generateToken(userDetails);
+        return new ResponseEntity<>(new LoginResp(token), HttpStatus.OK);
     }
 
   @PostMapping("/signup")
