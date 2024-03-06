@@ -2,13 +2,12 @@ package com.gaurav.usermicroservice.models;
 
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-import java.util.UUID;
 @Setter
 @Getter
+@RequiredArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name="role")
 public class Role {
@@ -16,5 +15,6 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
+    @NonNull
     private String name;
 }
