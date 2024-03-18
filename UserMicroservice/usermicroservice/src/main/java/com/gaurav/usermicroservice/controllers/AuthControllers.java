@@ -14,9 +14,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -24,6 +26,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -60,9 +64,15 @@ public class AuthControllers {
     @PostMapping("/signin")
     public ResponseEntity<LoginResp> authenticateUser(@RequestBody LoginReq loginReq){
 
-       try{ Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+       try{
+           Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginReq.getUsernameOrEmail(), loginReq.getPassword()));
-           SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContext context = SecurityContextHolder.getContext();
+                Authentication auth =context.getAuthentication();
+           System.out.println(auth);
+           //Now I will set the security context every time a request come with JWT in JWTRequestFilter
+//          SecurityContext securityContext= SecurityContextHolder.getContext();
+//                  securityContext.setAuthentication(authentication);
        }
        catch (Exception e){
            return new ResponseEntity<>(new LoginResp("Invalid Username or password"),HttpStatus.UNAUTHORIZED);
@@ -98,4 +108,22 @@ public class AuthControllers {
 
     return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
 }
+
+
+    @GetMapping("/validateJWT")
+    public ResponseEntity<String> validateJwt() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken)  {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+
+        var h1 =new HashMap<String, List<String>>();
+        if(authentication instanceof UsernamePasswordAuthenticationToken){
+//            h1.put("",authentication.getAuthorities());
+        }
+        var extraData = authentication.getName();
+
+        return new ResponseEntity<>(
+                extraData, HttpStatus.OK);
+    }
 }

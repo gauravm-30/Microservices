@@ -31,6 +31,9 @@ public class CustomUserDetailsService  implements UserDetailsService{
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found with username or email: "+ usernameOrEmail));
 
+        //here when we call the getRoles only then Hibernate will fire the query on the database
+        //since each interaction with database require the transaction it means while calling getRoles(),
+        //it should also be in the transaction.If not then it will give LazyInitializationException
         Set<Role>  userRoles=user.getRoles();
 
         Set<GrantedAuthority> authorities = userRoles
